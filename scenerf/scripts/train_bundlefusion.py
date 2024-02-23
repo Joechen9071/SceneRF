@@ -10,12 +10,11 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from scenerf.data.bundlefusion.bundlefusion_dm import BundlefusionDM
 
 from scenerf.models.scenerf_bf import SceneRF
-
+import os
+os.environ["PL_TORCH_DISTRIBUTED_BACKEND"] = "gloo"
 seed_everything(42)
 
 logger = logging.getLogger(__name__)
-
-
 
 
 @click.command()
@@ -32,31 +31,24 @@ logger = logging.getLogger(__name__)
 @click.option('--n_rays', default=1080, help='Total number of rays')
 @click.option('--sample_grid_size', default=1, help='sample pixel stride')
 @click.option('--smooth_loss_weight', default=0.0, help='smooth loss weight')
-
 @click.option('--max_sample_depth', default=12, help='maximum sample depth')
 @click.option('--eval_depth', default=10, help='cap depth at 10m for evaluation')
-
 @click.option('--n_pts_per_gaussian', default=8, help='number of points sampled for each gaussian')
 @click.option('--n_gaussians', default=4, help='number of gaussians')
 @click.option('--n_pts_uni', default=32, help='number of points sampled uniformly')
 @click.option('--std', default=0.1, help='std of each gaussian')
-
 @click.option('--add_fov_hor', default=14, help='angle added to left and right of the horizontal FOV')
 @click.option('--add_fov_ver', default=11, help='angle added to top and bottom of the vertical FOV')
 @click.option('--sphere_h', default=720, help='total frames distance')
 @click.option('--sphere_w', default=960, help='total frames distance')
-
 @click.option('--sampling_method', default="uniform", help='point sampling method')
 @click.option('--som_sigma', default=0.02, help='sigma parameter for SOM')
 @click.option('--net_2d', default="b7", help='')
-
 @click.option('--max_epochs', default=50, help='max training epochs')
 @click.option('--use_color', default=True, help='use color loss')
 @click.option('--use_reprojection', default=True, help='use reprojection loss')
-
 @click.option('--n_frames', default=16, help='number of frames in a sequence')
 @click.option('--frame_interval', default=2, help='interval between frames in a sequence')
-
 def main(
         root,
         bs, n_gpus, n_workers_per_gpu,
@@ -77,16 +69,17 @@ def main(
     assert logdir != "" and os.path.isdir(logdir), "$BF_LOG is not set"
     exp_name = exp_prefix
     exp_name += "_lr{}_{}rays_{}".format(lr, n_rays, net_2d)
-    exp_name += "_nGaus{}_nPtsPerGaus{}_std{}_SOMSigma{}".format(n_gaussians, n_pts_per_gaussian, std, som_sigma)
-    
-    exp_name += "_sphere{}x{}_addfov{}x{}".format(sphere_w, sphere_h, add_fov_hor, add_fov_ver)
+    exp_name += "_nGaus{}_nPtsPerGaus{}_std{}_SOMSigma{}".format(
+        n_gaussians, n_pts_per_gaussian, std, som_sigma)
+
+    exp_name += "_sphere{}x{}_addfov{}x{}".format(
+        sphere_w, sphere_h, add_fov_hor, add_fov_ver)
     exp_name += "_nFrames{}_frameInterval{}".format(n_frames, frame_interval)
-    
+
     if not use_reprojection:
         exp_name += "NoReproj"
     if not use_color:
         exp_name += "NoColor"
-
 
     # Setup dataloaders
     # max_epochs = 20
@@ -100,7 +93,6 @@ def main(
     print(exp_name)
     if pretrained_exp_name is not None:
         exp_name = pretrained_exp_name
-
 
     # Initialize MonoScene model
     model = SceneRF(
@@ -179,7 +171,6 @@ def main(
 
     trainer.fit(model, data_module)
     # trainer.validate(model, data_module)
-
 
 
 if __name__ == "__main__":
